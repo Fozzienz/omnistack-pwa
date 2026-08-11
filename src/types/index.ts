@@ -1,19 +1,45 @@
-export type BullionMetal = 'Gold' | 'Silver' | 'Platinum';
-
-export type BullionForm = 'Bar' | 'Coin' | 'Round' | 'Goldback';
+export type BullionMetal = 'Gold' | 'Silver' | 'Platinum' | 'XAU' | 'XAG' | 'XPT' | string;
+export type BullionForm = 'Bar' | 'Coin' | 'Round' | 'Goldback' | 'bar' | 'coin' | 'round' | 'fractional' | string;
 
 export interface BullionItem {
   id: string;
-  date: string;
   name: string;
   metal: BullionMetal;
   form: BullionForm;
   weightOzt: number;
-  pricePaidAud: number;
+  purity?: number;
+  quantity?: number;
+  pricePaidAud?: number;
+  purchasePrice?: number;
+  date?: string;
+  purchaseDate?: string;
+  notes?: string;
   imageUrl?: string;
 }
 
+export interface MarketMetals {
+  XAU: number;
+  XAG: number;
+  XPT: number;
+}
+
+export interface MarketData {
+  metals?: MarketMetals;
+  goldAud?: number;
+  silverAud?: number;
+  platinumAud?: number;
+  goldChange?: number;
+  silverChange?: number;
+  platinumChange?: number;
+  gsr?: number;
+  rateLimitExceeded?: boolean;
+  currency?: string;
+  timestamp?: string;
+  isFallback?: boolean;
+}
+
 export interface EtfHolding {
+  id?: string;
   ticker: string;
   name: string;
   units: number;
@@ -22,32 +48,25 @@ export interface EtfHolding {
   targetWeight: number;
 }
 
-export type TransactionType = 'deposit' | 'invest';
+export type TransactionType = 'BUY' | 'SELL' | 'DCA_DEPOSIT' | 'deposit' | 'invest' | string;
 
 export interface Transaction {
   id: string;
   date: string;
-  description: string;
-  amount: number;
   type: TransactionType;
+  ticker?: string;
+  units?: number;
+  amount: number;
+  description?: string;
+  notes?: string;
 }
 
-export interface MarketData {
-  goldAud: number;
-  goldChange: number;
-  silverAud: number;
-  silverChange: number;
-  gsr: number;
-  rateLimitExceeded?: boolean;
-}
-
-export type UserRole = 'user' | 'admin';
+export type UserRole = 'admin' | 'user';
 
 export interface UserProfile {
   id: string;
   email: string;
-  displayName: string;
-  country?: string;
-  currency?: string;
-  role?: UserRole;
+  fullName: string;
+  role: UserRole;
+  createdAt: string;
 }

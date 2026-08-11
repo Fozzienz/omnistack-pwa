@@ -1,24 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { TrendingUp, DollarSign, Calendar, PlusCircle, PieChart, Wallet, Trash2, Plus, RefreshCw, Zap, History, CheckCircle2 } from 'lucide-react';
-
-interface EtfHolding {
-  ticker: string;
-  name: string;
-  units: number;
-  avgPrice: number;
-  currentPrice: number;
-  targetWeight: number;
-}
-
-interface Transaction {
-  id: string;
-  date: string;
-  description: string;
-  amount: number;
-  type: 'deposit' | 'invest';
-}
+import { TrendingUp, Calendar, PlusCircle, PieChart, Trash2, Plus, RefreshCw, Zap, History } from 'lucide-react';
+import type { EtfHolding, Transaction } from '@/types';
 
 export default function PearlerTracker() {
   // Configurable Automation Rules

@@ -2,24 +2,23 @@
 
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Loader2, AlertTriangle } from 'lucide-react';
-
-interface MarketData {
-  goldAud: number;
-  goldChange: number;
-  silverAud: number;
-  silverChange: number;
-  gsr: number;
-  rateLimitExceeded?: boolean;
-}
+import type { MarketData } from '@/types';
 
 export default function HeaderTicker() {
   const [data, setData] = useState<MarketData | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
     fetch('/api/metals')
       .then((res) => res.json())
-      .then((json) => setData(json))
+      .then((json) => {
+        if (isMounted) setData(json);
+      })
       .catch(console.error);
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   if (!data) {
@@ -31,7 +30,7 @@ export default function HeaderTicker() {
     );
   }
 
-  const TickerItems = () => (
+  const renderTickerItems = () => (
     <>
       <div className="flex items-center gap-1.5 shrink-0">
         <span className="text-amber-400 font-bold">Gold:</span>
@@ -50,6 +49,17 @@ export default function HeaderTicker() {
         <span className={`flex items-center text-xs ${data.silverChange >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
           {data.silverChange >= 0 ? <TrendingUp className="w-3 h-3 mr-0.5" /> : <TrendingDown className="w-3 h-3 mr-0.5" />}
           {data.silverChange >= 0 ? `+${data.silverChange}%` : `${data.silverChange}%`}
+        </span>
+      </div>
+
+      <span className="text-slate-700 hidden xl:inline">|</span>
+
+      <div className="flex items-center gap-1.5 shrink-0">
+        <span className="text-slate-400 font-bold">Platinum:</span>
+        <span>${data.platinumAud.toLocaleString('en-AU', { minimumFractionDigits: 2 })}</span>
+        <span className={`flex items-center text-xs ${data.platinumChange >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+          {data.platinumChange >= 0 ? <TrendingUp className="w-3 h-3 mr-0.5" /> : <TrendingDown className="w-3 h-3 mr-0.5" />}
+          {data.platinumChange >= 0 ? `+${data.platinumChange}%` : `${data.platinumChange}%`}
         </span>
       </div>
 
@@ -99,10 +109,10 @@ export default function HeaderTicker() {
         )}
         <div className="overflow-hidden flex items-center min-h-[44px]">
           <div className="mobile-marquee gap-6 px-4 text-xs font-mono py-2">
-            <TickerItems />
+            {renderTickerItems()}
             <div className="duplicate-set flex items-center gap-6">
               <span className="text-slate-700">|</span>
-              <TickerItems />
+              {renderTickerItems()}
             </div>
           </div>
         </div>
