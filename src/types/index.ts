@@ -7,11 +7,11 @@ export interface BullionItem {
   metal: BullionMetal;
   form: BullionForm;
   weightOzt: number;
+  pricePaidAud: number;
+  date: string;
   purity?: number;
   quantity?: number;
-  pricePaidAud?: number;
   purchasePrice?: number;
-  date?: string;
   purchaseDate?: string;
   notes?: string;
   imageUrl?: string;
@@ -24,14 +24,14 @@ export interface MarketMetals {
 }
 
 export interface MarketData {
+  goldAud: number;
+  silverAud: number;
+  platinumAud: number;
+  goldChange: number;
+  silverChange: number;
+  platinumChange: number;
+  gsr: number;
   metals?: MarketMetals;
-  goldAud?: number;
-  silverAud?: number;
-  platinumAud?: number;
-  goldChange?: number;
-  silverChange?: number;
-  platinumChange?: number;
-  gsr?: number;
   rateLimitExceeded?: boolean;
   currency?: string;
   timestamp?: string;
