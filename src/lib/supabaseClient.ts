@@ -1,9 +1,17 @@
 import { createClient } from '@supabase/supabase-js';
 
-// It will try to read the env file first, but if it fails, it uses the hardcoded strings safely
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://xbnzwejtelqjboiztsdt.supabase.co';
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(
+      `Missing required environment variable: ${name}. ` +
+        `Copy .env.example to .env.local and set your Supabase project credentials.`
+    );
+  }
+  return value;
+}
 
-// REPLACE the string below with your full publishable key from Supabase (starting with sb_publishable...)
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_6feHf24OLPQB-gX5uvKE9g_SbUykHoG';
+const supabaseUrl = requireEnv('NEXT_PUBLIC_SUPABASE_URL');
+const supabaseAnonKey = requireEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY');
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);

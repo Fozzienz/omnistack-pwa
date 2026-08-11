@@ -1,35 +1,45 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Coins, Upload, Download, PlusCircle, Trash2, FileSpreadsheet, Edit3, Image as ImageIcon, Check, Filter } from 'lucide-react';
-
-interface BullionItem {
-  id: string;
-  date: string;
-  name: string;
-  metal: 'Gold' | 'Silver' | 'Platinum';
-  form: 'Bar' | 'Coin' | 'Round' | 'Goldback';
-  weightOzt: number;
-  pricePaidAud: number;
-  imageUrl?: string;
-}
+import { BullionItem, BullionMetal, BullionForm } from '@/types';
 
 export default function BullionManager() {
   const [bullion, setBullion] = useState<BullionItem[]>([]);
-  const [activeTab, setActiveTab] = useState<'All' | 'Gold' | 'Silver' | 'Platinum'>('All');
+  const [activeTab, setActiveTab] = useState<'All' | BullionMetal>('All');
 
-  // Live Spot Prices (AUD per ozt)
-  const spotPrices = {
-    Gold: 6129.59,
-    Silver: 89.82,
-    Platinum: 2468.28
-  };
+  // Live Spot Prices fetched dynamically from /api/metals (AUD per ozt)
+  const [spotPrices, setSpotPrices] = useState<Record<BullionMetal, number>>({
+    Gold: 0,
+    Silver: 0,
+    Platinum: 0,
+  });
+
+  // Fetch live metals market prices on component mount
+  useEffect(() => {
+    async function fetchSpotPrices() {
+      try {
+        const res = await fetch('/api/metals');
+        if (res.ok) {
+          const data = await res.json();
+          setSpotPrices({
+            Gold: data.goldAud || data.Gold || 0,
+            Silver: data.silverAud || data.Silver || 0,
+            Platinum: data.platinumAud || data.Platinum || 0,
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load spot prices in BullionManager:', error);
+      }
+    }
+    fetchSpotPrices();
+  }, []);
 
   // Manual entry form state
-  const [manualDate, setManualDate] = useState<string>('2026-08-10');
+  const [manualDate, setManualDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [manualName, setManualName] = useState<string>('');
-  const [manualMetal, setManualMetal] = useState<'Gold' | 'Silver' | 'Platinum'>('Gold');
-  const [manualForm, setManualForm] = useState<'Bar' | 'Coin' | 'Round' | 'Goldback'>('Coin');
+  const [manualMetal, setManualMetal] = useState<BullionMetal>('Gold');
+  const [manualForm, setManualForm] = useState<BullionForm>('Coin');
   const [manualWeightOzt, setManualWeightOzt] = useState<string>('');
   const [manualPrice, setManualPrice] = useState<string>('');
   const [manualImage, setManualImage] = useState<string>('');
@@ -37,7 +47,7 @@ export default function BullionManager() {
   // Editing state
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState<string>('');
-  const [editMetal, setEditMetal] = useState<'Gold' | 'Silver' | 'Platinum'>('Gold');
+  const [editMetal, setEditMetal] = useState<BullionMetal>('Gold');
   const [editDate, setEditDate] = useState<string>('');
   const [editWeight, setEditWeight] = useState<string>('');
   const [editPrice, setEditPrice] = useState<string>('');
@@ -200,10 +210,10 @@ export default function BullionManager() {
           continue;
         }
 
-        const date = row[0] || '2026-01-01';
+        const date = row[0] || new Date().toISOString().split('T')[0];
         const name = row[1] || 'Imported Bullion Item';
-        const metal = (['Gold', 'Silver', 'Platinum'].includes(row[2]) ? row[2] : 'Silver') as any;
-        const form = (['Bar', 'Coin', 'Round', 'Goldback'].includes(row[3]) ? row[3] : 'Coin') as any;
+        const metal: BullionMetal = (['Gold', 'Silver', 'Platinum'].includes(row[2]) ? row[2] : 'Silver') as BullionMetal;
+        const form: BullionForm = (['Bar', 'Coin', 'Round', 'Goldback'].includes(row[3]) ? row[3] : 'Coin') as BullionForm;
         const weightOzt = parseFloat(row[4]);
         const pricePaidAud = parseFloat(row[5]);
 
@@ -238,11 +248,11 @@ export default function BullionManager() {
     reader.readAsText(file);
   };
 
-  const getMetalStats = (metalName: 'Gold' | 'Silver' | 'Platinum') => {
+  const getMetalStats = (metalName: BullionMetal) => {
     const items = bullion.filter(b => b.metal === metalName);
     const weight = items.reduce((sum, item) => sum + item.weightOzt, 0);
     const cost = items.reduce((sum, item) => sum + item.pricePaidAud, 0);
-    const spotVal = weight * spotPrices[metalName];
+    const spotVal = weight * (spotPrices[metalName] || 0);
     const returnVal = spotVal - cost;
     return { weight, cost, spotVal, returnVal, count: items.length };
   };
@@ -252,7 +262,7 @@ export default function BullionManager() {
   const platinumStats = getMetalStats('Platinum');
 
   const totalSpent = bullion.reduce((sum, item) => sum + item.pricePaidAud, 0);
-  const totalCurrentSpotValue = bullion.reduce((sum, item) => sum + (item.weightOzt * spotPrices[item.metal]), 0);
+  const totalCurrentSpotValue = bullion.reduce((sum, item) => sum + (item.weightOzt * (spotPrices[item.metal] || 0)), 0);
   const totalGainLoss = totalCurrentSpotValue - totalSpent;
 
   const displayedBullion = activeTab === 'All' ? bullion : bullion.filter(b => b.metal === activeTab);
@@ -359,7 +369,7 @@ export default function BullionManager() {
                 <label className="text-[10px] text-slate-500 block mb-1">Metal</label>
                 <select 
                   value={manualMetal} 
-                  onChange={(e) => setManualMetal(e.target.value as any)}
+                  onChange={(e) => setManualMetal(e.target.value as BullionMetal)}
                   className="w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-2.5 py-1.5 rounded border border-slate-300 dark:border-slate-700"
                 >
                   <option value="Gold">Gold</option>
@@ -371,7 +381,7 @@ export default function BullionManager() {
                 <label className="text-[10px] text-slate-500 block mb-1">Form</label>
                 <select 
                   value={manualForm} 
-                  onChange={(e) => setManualForm(e.target.value as any)}
+                  onChange={(e) => setManualForm(e.target.value as BullionForm)}
                   className="w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-2.5 py-1.5 rounded border border-slate-300 dark:border-slate-700"
                 >
                   <option value="Bar">Bar</option>
@@ -452,18 +462,18 @@ export default function BullionManager() {
       {/* Holdings Ledger Table with Metal Filter Tabs */}
       <div className="space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <Coins className="w-4 h-4 text-amber-500" /> Bullion Transaction Ledger ({displayedBullion.length} Items shown)
           </h3>
 
           {/* Metal Section Filter Tabs */}
-          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs font-mono">
-            <span className="text-slate-400 px-2 flex items-center gap-1"><Filter className="w-3 h-3"/> Section:</span>
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-lg border border-slate-300 dark:border-slate-800 text-xs font-mono">
+            <span className="text-slate-500 dark:text-slate-400 px-2 flex items-center gap-1"><Filter className="w-3 h-3"/> Section:</span>
             {(['All', 'Gold', 'Silver', 'Platinum'] as const).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-3 py-1 rounded transition-colors font-bold ${activeTab === tab ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'}`}
+                className={`px-3 py-1 rounded transition-colors font-bold ${activeTab === tab ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
               >
                 {tab} {tab === 'Gold' && `(${goldStats.count})`} {tab === 'Silver' && `(${silverStats.count})`} {tab === 'Platinum' && `(${platinumStats.count})`} {tab === 'All' && `(${bullion.length})`}
               </button>
@@ -489,12 +499,12 @@ export default function BullionManager() {
               {displayedBullion.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-slate-500">
-                    No bullion items found for <span className="text-amber-400 font-bold">{activeTab}</span>. Upload a Master CSV or add an item manually above.
+                    No bullion items found for <span className="text-amber-500 dark:text-amber-400 font-bold">{activeTab}</span>. Upload a Master CSV or add an item manually above.
                   </td>
                 </tr>
               ) : (
                 displayedBullion.map((item) => {
-                  const currentSpotValue = item.weightOzt * spotPrices[item.metal];
+                  const currentSpotValue = item.weightOzt * (spotPrices[item.metal] || 0);
                   const isEditing = editingId === item.id;
                   const isDeleting = deletingId === item.id;
 
@@ -534,7 +544,7 @@ export default function BullionManager() {
                         {isEditing ? (
                           <input 
                             type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)}
-                            className="bg-slate-900 text-white px-2 py-1 rounded border border-slate-700 text-xs w-28"
+                            className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-2 py-1 rounded border border-slate-300 dark:border-slate-700 text-xs w-28"
                           />
                         ) : (
                           formatDateDisplay(item.date)
@@ -546,7 +556,7 @@ export default function BullionManager() {
                         {isEditing ? (
                           <input 
                             type="text" value={editName} onChange={(e) => setEditName(e.target.value)}
-                            className="bg-slate-900 text-white px-2 py-1 rounded border border-slate-700 text-xs w-full"
+                            className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-2 py-1 rounded border border-slate-300 dark:border-slate-700 text-xs w-full"
                           />
                         ) : (
                           item.name
@@ -557,8 +567,8 @@ export default function BullionManager() {
                       <td className="py-2.5 px-3 font-bold text-amber-600 dark:text-amber-400">
                         {isEditing ? (
                           <select 
-                            value={editMetal} onChange={(e) => setEditMetal(e.target.value as any)}
-                            className="bg-slate-900 text-white px-2 py-1 rounded border border-slate-700 text-xs"
+                            value={editMetal} onChange={(e) => setEditMetal(e.target.value as BullionMetal)}
+                            className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-2 py-1 rounded border border-slate-300 dark:border-slate-700 text-xs"
                           >
                             <option value="Gold">Gold</option>
                             <option value="Silver">Silver</option>
@@ -574,7 +584,7 @@ export default function BullionManager() {
                         {isEditing ? (
                           <input 
                             type="number" step="any" value={editWeight} onChange={(e) => setEditWeight(e.target.value)}
-                            className="bg-slate-900 text-white px-2 py-1 rounded border border-slate-700 text-xs w-16 text-right"
+                            className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-2 py-1 rounded border border-slate-300 dark:border-slate-700 text-xs w-16 text-right"
                           />
                         ) : (
                           `${item.weightOzt.toFixed(2)} ozt`
@@ -586,7 +596,7 @@ export default function BullionManager() {
                         {isEditing ? (
                           <input 
                             type="number" step="any" value={editPrice} onChange={(e) => setEditPrice(e.target.value)}
-                            className="bg-slate-900 text-white px-2 py-1 rounded border border-slate-700 text-xs w-20 text-right"
+                            className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-2 py-1 rounded border border-slate-300 dark:border-slate-700 text-xs w-20 text-right"
                           />
                         ) : (
                           `$${item.pricePaidAud.toFixed(2)}`
@@ -602,14 +612,14 @@ export default function BullionManager() {
                       <td className="py-2.5 px-3 text-center">
                         {isDeleting ? (
                           <div className="flex items-center justify-center gap-1 bg-rose-500/10 p-1 rounded border border-rose-500/30">
-                            <span className="text-[10px] text-rose-400 font-bold px-1">Delete?</span>
+                            <span className="text-[10px] text-rose-500 dark:text-rose-400 font-bold px-1">Delete?</span>
                             <button onClick={() => confirmDelete(item.id)} className="bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded">Yes</button>
-                            <button onClick={() => setDeletingId(null)} className="bg-slate-700 text-slate-300 text-[10px] px-2 py-0.5 rounded">No</button>
+                            <button onClick={() => setDeletingId(null)} className="bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-300 text-[10px] px-2 py-0.5 rounded">No</button>
                           </div>
                         ) : (
                           <div className="flex items-center justify-center gap-3">
                             {isEditing ? (
-                              <button onClick={() => saveEditing(item.id)} className="text-emerald-400 hover:text-emerald-300 p-1" title="Save">
+                              <button onClick={() => saveEditing(item.id)} className="text-emerald-500 hover:text-emerald-400 p-1" title="Save">
                                 <Check className="w-4 h-4" />
                               </button>
                             ) : (
