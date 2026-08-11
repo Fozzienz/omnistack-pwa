@@ -15,7 +15,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans pb-12 transition-colors duration-200">
       <HeaderTicker />
-      
+       
       <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
         
         {/* OmniStack Branded Header Block with Hamburger Menu */}
