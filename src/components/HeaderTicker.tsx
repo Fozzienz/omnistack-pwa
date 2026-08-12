@@ -42,6 +42,13 @@ export default function HeaderTicker() {
         <span className="font-semibold text-slate-400">GSR:</span>
         <span className="font-bold text-amber-300">{marketData.gsr.toFixed(2)}</span>
       </div>
+
+      {marketData.rateLimitExceeded && (
+        <div className="border-l border-slate-700 pl-4 text-amber-400 font-medium flex items-center space-x-1">
+          <span>⚠️</span>
+          <span>GoldAPI limit reached (using cached/fallback rates)</span>
+        </div>
+      )}
     </div>
   );
 }
